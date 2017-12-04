@@ -14,7 +14,16 @@
 #include <shape.h>
 #include <abCircle.h>
 
+
 #define GREEN_LED BIT6
+#define RED_LED BIT7
+
+
+#define SW1 BIT0		/* switch1 is p1.3 */
+#define SW2 BIT1
+#define SW3 BIT2
+#define SW4 BIT3
+
 
 
 //AbRect rect10 = {abRectGetBounds, abRectCheck, {10,10}}; /**< 10x10 rectangle */
@@ -22,12 +31,14 @@ AbRect rectFence= {abRectGetBounds, abRectCheck, {1,70}};
 AbRect leftPad= {abRectGetBounds, abRectCheck, {2,15}};
 AbRect rightPad= {abRectGetBounds, abRectCheck, {2,15}};
 
-AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
+//AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 30};
 
 AbRectOutline fieldOutline = {	/* playing field */
   abRectOutlineGetBounds, abRectOutlineCheck,   
-  {screenWidth/2 - 1, screenHeight/2 - 10}
+  {screenWidth/2 -1, screenHeight/2 -10}// -1 ,-10
 };
+
+
 /*
 Layer outLine = {
   (AbShape *)&fieldOutline,
@@ -47,7 +58,7 @@ Layer Fence = {//Fence
 };
 
 Layer layer3 = {		/**< play ball */
-  (AbShape *)&circle4,
+  (AbShape *)&circle6,
   {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_WHITE,
@@ -64,7 +75,7 @@ Layer fieldLayer = {		/* playing field as a layer */
 };
 
 
-Layer layer1 = {		/**< Layer with a red square */
+Layer layer1 = {		/**< Layer with rightPad */
   (AbShape *)&rightPad,
   {screenWidth/2+60, screenHeight/2}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
@@ -72,8 +83,8 @@ Layer layer1 = {		/**< Layer with a red square */
   &fieldLayer,
 };
 
-Layer layer0 = {		/**< Layer with an orange circle */
-  (AbShape *)&leftPad,
+Layer layer0 = {		/**< Layer with leftPad */
+  (AbShape *)&leftPad,//leftPad
   {(screenWidth/2)-60, (screenHeight/2)}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_ORANGE,
@@ -91,16 +102,21 @@ typedef struct MovLayer_s {
 } MovLayer;
 
 /* initial value of {0,0} will be overwritten */
-MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
+MovLayer ml3 = { &layer3, {4,4}, 0 }; /**< not all layers move */
 MovLayer ml1 = { &layer1, {0,5}, &ml3 }; 
 MovLayer ml0 = { &layer0, {0,5}, &ml1 }; 
+
+
 
 void movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
   int row, col;
+  //char leftScore
   MovLayer *movLayer;
   
-  drawString5x7(10,1, "switches:", COLOR_GREEN, COLOR_BLUE);
+  drawString5x7(50,1, "SCORE", COLOR_WHITE, COLOR_GRAY);
+  //drawString5x7(1,9, leftScore, COLOR_WHITE, COLOR_GRAY);
+  
 
   and_sr(~8);			/**< disable interrupts (GIE off) */
   for (movLayer = movLayers; movLayer; movLayer = movLayer->next) { /* for each moving layer */
@@ -108,7 +124,7 @@ void movLayerDraw(MovLayer *movLayers, Layer *layers)
     l->posLast = l->pos;
     l->pos = l->posNext;
   }
-  or_sr(8);			/**< disable interrupts (GIE on) */
+  or_sr(8);//8			/**< disable interrupts (GIE on) */
 
 
   for (movLayer = movLayers; movLayer; movLayer = movLayer->next) { /* for each moving layer */
@@ -192,8 +208,8 @@ void main()
 
 
   enableWDTInterrupts();      /**< enable periodic interrupt */
-  or_sr(0x8);	              /**< GIE (enable interrupts) */
-
+  or_sr(0x8);
+	              /**< GIE (enable interrupts) */
 
   for(;;) { 
     while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
@@ -204,6 +220,7 @@ void main()
     redrawScreen = 0;
     movLayerDraw(&ml0, &layer0);
   }
+
 }
 
 /** Watchdog timer interrupt handler. 15 interrupts/sec */
