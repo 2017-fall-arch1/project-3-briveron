@@ -1,5 +1,5 @@
 #include <msp430.h>
-#include "libTimer.h"
+#include <libTimer.h>
 #include "buzzer.h"
 
 #define MIN_PERIOD 1000
@@ -45,12 +45,4 @@ void rest()
     
 }
 
-void bounce1(){
-    for(int i=0;i<100;i++)
-    {
-        __delay_cycles(2000);
-        buzzer_advance_frequency();
-    }
-    rest();
-}
 

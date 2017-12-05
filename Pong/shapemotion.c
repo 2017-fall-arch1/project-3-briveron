@@ -1,11 +1,3 @@
-/** \file shapemotion.c
- *  \brief This is a simple shape motion demo.
- *  This demo creates two layers containing shapes.
- *  One layer contains a rectangle and the other a circle.
- *  While the CPU is running the green LED is on, and
- *  when the screen does not need to be redrawn the CPU
- *  is turned off along with the green LED.
- */  
 #include <msp430.h>
 #include <libTimer.h>
 #include <lcdutils.h>
@@ -18,8 +10,8 @@
 
 #define GREEN_LED BIT6
 
-int p1Score=0;
 int p2Score=0;
+int p1Score=0;
 char scoreBoard[3];
 
 AbRect rectFence= {abRectGetBounds, abRectCheck, {1,70}};
@@ -197,7 +189,6 @@ void mlAdvance(MovLayer *ml, MovLayer *p1, MovLayer *p2, Region *fence)
                 ml->velocity.axes[0] = 2;
                 ml->layer->posNext = newPos;
                 p1Score++;
-                //buzzer_set_period(1000);
                 int redrawScreen = 1;
                 break;
                 
@@ -209,8 +200,6 @@ void mlAdvance(MovLayer *ml, MovLayer *p1, MovLayer *p2, Region *fence)
                 ml->velocity.axes[0] = -2;
                 ml->layer->posNext = newPos;
                 p2Score++;
-                
-                //buzzer_set_period(1000);
                 int redrawScreen = 1;
                 break;
 			}
@@ -224,8 +213,8 @@ void mlAdvance(MovLayer *ml, MovLayer *p1, MovLayer *p2, Region *fence)
                 p1Score = 0;
                 p2Score = 0;
         }
-        scoreBoard[0] = '0' + p1Score;
-        scoreBoard[2] = '0' + p2Score;
+        scoreBoard[2] = '0' + p1Score;
+        scoreBoard[0] = '0' + p2Score;
 	}
 	int redrawScreen = 1;
 	drawString5x7(55,15, scoreBoard , COLOR_WHITE, COLOR_BLACK);
@@ -292,7 +281,7 @@ void main()
   layerGetBounds(&fieldLayer, &fieldFence);
 
 
-  drawString5x7(50,1, "SCORE", COLOR_WHITE, COLOR_GRAY);
+  drawString5x7(50,1, "SCORE", COLOR_WHITE, COLOR_BLACK);
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);/**< GIE (enable interrupts) */
 
@@ -328,6 +317,7 @@ void wdt_c_handler()
     mlAdvance(&ml0,&ml0,&ml1, &fieldFence);
     if (p2sw_read())
       redrawScreen = 1;
+    redrawScreen = 1;
     count = 0;
   } 
   P1OUT &= ~GREEN_LED;		    /**< Green LED off when cpu off */
