@@ -1,1 +1,0 @@
-	.file	"shapemotion.c"
