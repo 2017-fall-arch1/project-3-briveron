@@ -18,6 +18,10 @@
 
 #define GREEN_LED BIT6
 
+int p1Score=0;
+int p2Score=0;
+char scoreBoard[3];
+
 AbRect rectFence= {abRectGetBounds, abRectCheck, {1,70}};
 AbRect leftPad= {abRectGetBounds, abRectCheck, {2,20}};
 AbRect rightPad= {abRectGetBounds, abRectCheck, {2,20}};
@@ -82,7 +86,7 @@ typedef struct MovLayer_s {
 /* initial value of {0,0} will be overwritten */
 MovLayer ml3 = { &layer3, {4,4}, 0 }; /**< not all layers move */
 MovLayer ml1 = { &layer1, {0,0}, &ml3 };//leftPad
-MovLayer ml0 = { &layer0, {0,0}, &ml1 };//RigthPad
+MovLayer ml0 = { &layer0, {0,0}, &ml1 };//RigthPad 
 
 
 
@@ -133,30 +137,102 @@ void movLayerDraw(MovLayer *movLayers, Layer *layers)
  *  \param ml The moving shape to be advanced
  *  \param fence The region which will serve as a boundary for ml
  */
-void mlAdvance(MovLayer *ml, Region *fence)
+void mlAdvance(MovLayer *ml, MovLayer *p1, MovLayer *p2, Region *fence)
 {
-  Vec2 newPos;
-  u_char axis;
-  Region shapeBoundary;
-  for (; ml; ml = ml->next) {
-      
-    vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
-    abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
-    for (axis = 0; axis < 2; axis ++) {
-      if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
-	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
-	int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
-    newPos.axes[axis] += (2*velocity);
-      }	/**< if outside of fence */
-      
-    } /**< for axis */
-    ml->layer->posNext = newPos;
-  } /**< for ml */
+    scoreBoard[1] = '|';
+	Vec2 newPos;
+	u_char axis;
+	Region shapeBoundary;
+    
+    Region paddle;
+    Vec2 newPosP1;
+	u_char axisP1;
+	Region p1Boundary;
+    
+    Vec2 newPosP2;
+	u_char axisP2;
+	Region p2Boundary;
+    
+    paddle.topLeft.axes[0] = fence->topLeft.axes[0] + 7;
+    paddle.topLeft.axes[1] = fence->topLeft.axes[1];
+    paddle.botRight.axes[0] = fence->botRight.axes[0] - 7;
+    paddle.botRight.axes[1] = fence->botRight.axes[1];
+    
+	for (; ml; ml = ml->next) {
+        buzzer_set_period(0);
+		vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
+		abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
+        
+		vec2Add(&newPosP1, &p1->layer->posNext, &p1->velocity);
+		abShapeGetBounds(p1->layer->abShape, &newPosP1, &p1Boundary);
+        
+        vec2Add(&newPosP2, &p2->layer->posNext, &p2->velocity);
+		abShapeGetBounds(p2->layer->abShape, &newPosP2, &p2Boundary);
+        
+        for (axis = 0; axis < 2; axis ++){
+            //added for p1
+            if((shapeBoundary.topLeft.axes[axis] < paddle.topLeft.axes[axis]) || (shapeBoundary.botRight.axes[axis] > paddle.botRight.axes[axis])){
+                if(shapeBoundary.topLeft.axes[1] > p2Boundary.topLeft.axes[1] && shapeBoundary.botRight.axes[1] < p2Boundary.botRight.axes[1] && shapeBoundary.topLeft.axes[0] > (screenWidth/2)){
+                     int velocity = ml->velocity.axes[0] = -ml->velocity.axes[0];
+                    buzzer_set_period(5000);
+                    newPos.axes[0] += (2*velocity);
+                    break;
+                }
+                if(shapeBoundary.topLeft.axes[1] > p1Boundary.topLeft.axes[1] && shapeBoundary.botRight.axes[1] < p1Boundary.botRight.axes[1] && shapeBoundary.topLeft.axes[0] < (screenWidth/2)){
+                     int velocity = ml->velocity.axes[0] = -ml->velocity.axes[0];
+                    buzzer_set_period(4000);
+                    newPos.axes[0] += (2*velocity);
+                    break;
+                }
+            }
+            if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) || (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis])) {
+               
+                int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
+                    buzzer_set_period(500);
+                    newPos.axes[axis] += (2*velocity);
+			}
+            if (shapeBoundary.topLeft.axes[0] < fence->topLeft.axes[0]) {
+				newPos.axes[0] = screenWidth/2;
+                newPos.axes[1] = screenHeight/2;
+                ml->velocity.axes[0] = 2;
+                ml->layer->posNext = newPos;
+                p1Score++;
+                //buzzer_set_period(1000);
+                int redrawScreen = 1;
+                break;
+                
+			}
+			
+			else if (shapeBoundary.botRight.axes[0] > fence->botRight.axes[0]) {
+				newPos.axes[0] = screenWidth/2;
+                newPos.axes[1] = screenHeight/2;
+                ml->velocity.axes[0] = -2;
+                ml->layer->posNext = newPos;
+                p2Score++;
+                
+                //buzzer_set_period(1000);
+                int redrawScreen = 1;
+                break;
+			}
+			
+			
+		} /**< for ml */
+		int redrawScreen = 1;
+		ml->layer->posNext = newPos;
+
+		if ( p1Score > 9 || p2Score > 9){
+                p1Score = 0;
+                p2Score = 0;
+        }
+        scoreBoard[0] = '0' + p1Score;
+        scoreBoard[2] = '0' + p2Score;
+	}
+	int redrawScreen = 1;
+	drawString5x7(55,15, scoreBoard , COLOR_WHITE, COLOR_BLACK);
 }
 
 
-void p1_UP_DOWN(u_int sw) 
-{
+void p1_UP_DOWN(u_int sw) {
     if(!(sw & (1<<0))) //   if(!(sw & (1<<0))) 
     {
         ml0.velocity.axes[1] = -5;
@@ -182,34 +258,6 @@ void p2_UP_DOWN(u_int sw) {
     else 
     {
         ml1.velocity.axes[1] = 0;
-    }
-}
-
-
-void collision1() 
-{
-    if((layer3.pos.axes[1]  >= (layer1.pos.axes[1]-1))
-     && (layer3.pos.axes[0] <= (layer1.pos.axes[0]+15))
-     && (layer3.pos.axes[0] >= (layer1.pos.axes[0]-15))) 
-    {
-    bounce1();
-    layer3.posNext.axes[1] -= 4;
-    ml3.velocity.axes[1] = -ml3.velocity.axes[1];
-         
-    }
-}
-
-
-void collision2() 
-{
-    if((layer3.pos.axes[1]  >= (layer0.pos.axes[1]+1))
-     && (layer3.pos.axes[0] <= (layer0.pos.axes[0]+15))
-     && (layer3.pos.axes[0] >= (layer0.pos.axes[0]-15))) 
-    {
-    bounce1();
-    layer3.posNext.axes[1] -= 4;
-    ml3.velocity.axes[1] = -ml3.velocity.axes[1];
-         
     }
 }
 
@@ -240,7 +288,10 @@ void main()
   shapeInit();
   layerInit(&layer0);
   layerDraw(&layer0);
+
   layerGetBounds(&fieldLayer, &fieldFence);
+
+
   drawString5x7(50,1, "SCORE", COLOR_WHITE, COLOR_GRAY);
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);/**< GIE (enable interrupts) */
@@ -250,9 +301,8 @@ void main()
   
   for(;;) { 
       
-      sw = p2sw_read(); //added----------
-      
-      
+    sw = p2sw_read(); //added----------
+    
     while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
       or_sr(0x10);	      /**< CPU OFF */
@@ -260,8 +310,6 @@ void main()
     
     p1_UP_DOWN(sw);
     p2_UP_DOWN(sw);
-    collision1();
-    collision2();
     
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
@@ -277,7 +325,7 @@ void wdt_c_handler()
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
   if (count == 15) {
-    mlAdvance(&ml0, &fieldFence);
+    mlAdvance(&ml0,&ml0,&ml1, &fieldFence);
     if (p2sw_read())
       redrawScreen = 1;
     count = 0;

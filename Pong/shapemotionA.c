@@ -1,4 +1,3 @@
- 
 /** \file shapemotion.c
  *  \brief This is a simple shape motion demo.
  *  This demo creates two layers containing shapes.
@@ -84,7 +83,7 @@ typedef struct MovLayer_s {
 /* initial value of {0,0} will be overwritten */
 MovLayer ml3 = { &layer3, {0,0}, 0 }; /**< not all layers move */
 MovLayer ml1 = { &layer1, {0,0}, &ml3}; 
-MovLayer ml0 = { &layer0, {2,2}, &ml1}; 
+MovLayer ml0 = { &layer0, {1,4}, &ml1}; 
 
 void movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
