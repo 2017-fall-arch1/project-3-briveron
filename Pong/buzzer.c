@@ -1,5 +1,5 @@
 #include <msp430.h>
-#include <libTimer.h>
+#include "libTimer.h"
 #include "buzzer.h"
 
 #define MIN_PERIOD 1000
@@ -19,7 +19,7 @@ void buzzer_init()
     P2SEL |= BIT6;
     P2DIR = BIT6;
     
-    //buzzer_set_period(1000);
+    buzzer_set_period(1000);
     buzzer_advance_frequency();
 }
 
